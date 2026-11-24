@@ -15,7 +15,13 @@ export const getPosts = async () => {
   let id = CONFIG.notionConfig.pageId as string
   const api = new NotionAPI()
 
-  const response = await api.getPage(id)
+  const response = await api.getPage(id, {
+    gotOptions: {
+      headers: {
+        "user-agent": "notion-client (+https://github.com/NotionX/react-notion-x)",
+      },
+    },
+  })
   id = idToUuid(id)
   const collectionValue = Object.values(response.collection)[0]?.value as any
   const collection = collectionValue?.value ?? collectionValue
