@@ -1,5 +1,5 @@
 import { CONFIG } from "site.config"
-import { NotionAPI } from "notion-client"
+import { notion } from "./client"
 import { idToUuid } from "notion-utils"
 
 import getAllPageIds from "src/libs/utils/notion/getAllPageIds"
@@ -13,15 +13,7 @@ import { TPosts } from "src/types"
 // TODO: react query를 사용해서 처음 불러온 뒤로는 해당데이터만 사용하도록 수정
 export const getPosts = async () => {
   let id = CONFIG.notionConfig.pageId as string
-  const api = new NotionAPI()
-
-  const response = await api.getPage(id, {
-    gotOptions: {
-      headers: {
-        "user-agent": "notion-client (+https://github.com/NotionX/react-notion-x)",
-      },
-    },
-  })
+  const response = await notion.getPage(id)
   id = idToUuid(id)
   const collectionValue = Object.values(response.collection)[0]?.value as any
   const collection = collectionValue?.value ?? collectionValue
