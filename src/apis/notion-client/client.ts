@@ -22,15 +22,53 @@ export function normalizeRecordMap(recordMap: Record<string, any>) {
   }
 }
 
+function normalizeCollectionQuery(body: Record<string, any>) {
+  if (!body.loader?.reducers) return body
+
+  const reducers = Object.fromEntries(
+    Object.entries(body.loader.reducers).map(
+      ([key, reducer]: [string, any]) => {
+        if (reducer.type !== "groups" || !reducer.groupBy?.property) {
+          return [key, reducer]
+        }
+
+        return [
+          key,
+          {
+            ...reducer,
+            version: "v2",
+            groupSortPreference: (reducer.groupSortPreference ?? []).map(
+              (group: any) =>
+                "property" in group
+                  ? group
+                  : {
+                      property: reducer.groupBy.property,
+                      value: group,
+                    }
+            ),
+          },
+        ]
+      }
+    )
+  )
+
+  return { ...body, loader: { ...body.loader, reducers } }
+}
+
 class CompatibleNotionAPI extends NotionAPI {
   async fetch<T>(options: Parameters<NotionAPI["fetch"]>[0]): Promise<T> {
     const response = await super.fetch<any>({
       ...options,
+      body:
+        options.endpoint === "queryCollection"
+          ? normalizeCollectionQuery(options.body)
+          : options.body,
       gotOptions: {
         ...options.gotOptions,
         headers: {
           ...options.gotOptions?.headers,
-          "user-agent": "notion-client (+https://github.com/NotionX/react-notion-x)",
+          "user-agent":
+            "notion-client (+https://github.com/NotionX/react-notion-x)",
         },
       },
     })

@@ -1,6 +1,18 @@
 import { idToUuid } from "notion-utils"
 import { ExtendedRecordMap, ID } from "notion-types"
 
+function getViewPageIds(view: any): ID[] {
+  if (view?.collection_group_results?.blockIds) {
+    return view.collection_group_results.blockIds
+  }
+  if (view?.blockIds) return view.blockIds
+
+  // Grouped views return one results reducer per group instead of a single list.
+  return Object.entries(view ?? {}).flatMap(([key, reducer]: [string, any]) =>
+    key.startsWith("results:") ? reducer?.blockIds ?? [] : []
+  )
+}
+
 export default function getAllPageIds(
   response: ExtendedRecordMap,
   viewId?: string
@@ -11,15 +23,12 @@ export default function getAllPageIds(
   let pageIds: ID[] = []
   if (viewId) {
     const vId = idToUuid(viewId)
-    const view = views[vId] as any
-    pageIds = view?.collection_group_results?.blockIds ?? view?.blockIds ?? []
+    pageIds = [...new Set(getViewPageIds(views[vId]))]
   } else {
     const pageSet = new Set<ID>()
     // * type not exist
     Object.values(views).forEach((view: any) => {
-      view?.collection_group_results?.blockIds?.forEach((id: ID) =>
-        pageSet.add(id)
-      )
+      getViewPageIds(view).forEach((id: ID) => pageSet.add(id))
     })
     pageIds = [...pageSet]
   }
